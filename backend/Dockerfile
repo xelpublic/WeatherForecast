@@ -8,6 +8,7 @@ COPY Wf.Application/Wf.Application.csproj Wf.Application/
 COPY Wf.Domain/Wf.Domain.csproj Wf.Domain/
 COPY Wf.Infrastructure/Wf.Infrastructure.csproj Wf.Infrastructure/
 COPY Wf.WebApi/Wf.WebApi.csproj Wf.WebApi/
+COPY Wf.Tests/Wf.Tests.csproj Wf.Tests/
 
 # Restore dependencies
 RUN dotnet restore Wf.Backend.sln
