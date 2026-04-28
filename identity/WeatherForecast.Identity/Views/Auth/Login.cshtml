@@ -1,0 +1,31 @@
+@model WeatherForecast.Identity.Models.LoginViewModel
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Вход в систему";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-11">
+        <h2 class="text-center mb-6">Вход в систему</h2>
+        <form asp-controller="Auth" asp-action="Login" method="post">
+            <input type="hidden" asp-for="ReturnUrl"/>
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <div>
+                <label asp-for="Username" class="form-label">Имя пользователя</label>
+                <input asp-for="Username" class="form-control"/>
+                <span asp-validation-for="Username" class="text-danger"></span>
+            </div>
+            <div>
+                <label asp-for="Password" class="form-label">Пароль</label>
+                <input asp-for="Password" type="password" class="form-control"/>
+                <span asp-validation-for="Password" class="text-danger"></span>
+            </div>
+            <div class="d-grid" style="margin-top: 10px">
+                <button type="submit" class="btn btn-primary">Войти</button>
+            </div>
+            <div class="mt-3 text-center">
+                <a asp-controller="Auth" asp-action="Register" asp-route-returnUrl="@Model.ReturnUrl">Регистрация</a>
+            </div>
+        </form>
+    </div>
+</div>

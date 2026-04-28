@@ -1,0 +1,15 @@
+﻿{
+  "profiles": {
+    "Wf.WebApi": {
+      "commandName": "Project",
+      "dotnetRunMessages": "true",
+      "launchBrowser": true,
+      "applicationUrl": "https://localhost:5001;http://localhost:5000",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "WEATHERAPI_KEY": "fa8b3df74d4042b9aa7135114252304",
+        "ConnectionStrings__Redis": "localhost:6379"
+      }
+    }
+  }
+}

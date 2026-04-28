@@ -1,0 +1,336 @@
+@page
+@using Wf.Frontend.Helpers
+@model Wf.Frontend.Pages.WeatherForecastModel
+@{
+    ViewData["Title"] = "Прогноз погоды";
+    
+    string GetUvBadgeClass(double? uv)
+    {
+        if (uv == null) return "bg-secondary";
+        
+        double value = uv.Value;
+        if (value < 3) return "bg-success";
+        if (value < 6) return "bg-warning";
+        if (value < 8) return "bg-orange";
+        if (value < 11) return "bg-danger";
+        return "bg-purple";
+    }
+    
+    int GetHourFromTime(string time)
+    {
+        if (string.IsNullOrEmpty(time)) return 0;
+        var parts = time.Split(' ');
+        string timePart = parts.Length > 1 ? parts[1] : parts[0];
+        var hourStr = timePart.Split(':')[0];
+        return int.Parse(hourStr);
+    }
+
+}
+
+<div class="container mt-4">
+    <h1 class="text-center mb-4">Прогноз погоды. Москва</h1>
+    
+    @if (Model.IsLoading)
+    {
+        <div class="text-center my-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Загрузка...</span>
+            </div>
+            <p class="mt-2">Загрузка данных о погоде...</p>
+        </div>
+    }
+    else if (Model.HasError)
+    {
+        <div class="alert alert-danger text-center">
+            <h4 class="alert-heading">Ошибка</h4>
+            <p>@Model.ErrorMessage</p>
+            <hr>
+            <a href="?retry=true" class="btn btn-danger">Попробовать снова</a>
+        </div>
+    }
+    else if (Model.WeatherForecast != null)
+    {
+        <!-- Текущая погода -->
+        <div class="card mb-4 weather-card border-primary">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h3 class="mb-0"><i class="bi bi-cloud-sun"></i> Текущая погода</h3>
+                <span class="badge bg-light text-primary fs-6">В реальном времени</span>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-lg-5 col-md-6 mb-4 mb-md-0">
+                        <div class="d-flex align-items-center">
+                            @if (Model.WeatherForecast.Current.Condition?.Icon != null)
+                            {
+                                <img src="@Model.WeatherForecast.Current.Condition.Icon" alt="@TranslationHelper.TranslateCondition(Model.WeatherForecast.Current.Condition.Text)" class="me-4 weather-icon">
+                            }
+                            <div>
+                                <h2 class="display-2 fw-bold temperature-display">@Model.WeatherForecast.Current.TempC°C</h2>
+                                <p class="lead weather-condition fs-3">@TranslationHelper.TranslateCondition(Model.WeatherForecast.Current.Condition?.Text)</p>
+                                <div class="d-flex align-items-center">
+                                    <span class="badge bg-info me-2">
+                                        @if (Model.WeatherForecast.Current.IsDay == 1)
+                                        {
+                                            <i class="bi bi-sun"></i> @:День
+                                        }
+                                        else
+                                        {
+                                            <i class="bi bi-moon"></i> @:Ночь
+                                        }
+                                    </span>
+                                    <span class="text-muted">Ощущается как @Model.WeatherForecast.Current.FeelslikeC°C</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-7 col-md-6">
+                        <div class="row g-3">
+                            <div class="col-sm-6">
+                                <div class="card bg-light h-100">
+                                    <div class="card-body">
+                                        <h6 class="card-subtitle mb-2 text-muted"><i class="bi bi-wind"></i> Ветер</h6>
+                                        <p class="card-text fs-5 fw-bold">@Model.WeatherForecast.Current.WindKph км/ч</p>
+                                        <small class="text-muted">Направление: @Model.WeatherForecast.Current.WindDir</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-sm-6">
+                                <div class="card bg-light h-100">
+                                    <div class="card-body">
+                                        <h6 class="card-subtitle mb-2 text-muted"><i class="bi bi-droplet"></i> Влажность</h6>
+                                        <p class="card-text fs-5 fw-bold">@Model.WeatherForecast.Current.Humidity%</p>
+                                        <div class="progress mt-2" style="height: 6px;">
+                                            <div class="progress-bar bg-info" role="progressbar" style="width: @(Model.WeatherForecast.Current.Humidity ?? 0)%"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-sm-6">
+                                <div class="card bg-light h-100">
+                                    <div class="card-body">
+                                        <h6 class="card-subtitle mb-2 text-muted"><i class="bi bi-speedometer2"></i> Давление</h6>
+                                        <p class="card-text fs-5 fw-bold">@Model.WeatherForecast.Current.PressureMb мб</p>
+                                        <small class="text-muted">Атмосферное давление</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-sm-6">
+                                <div class="card bg-light h-100">
+                                    <div class="card-body">
+                                        <h6 class="card-subtitle mb-2 text-muted"><i class="bi bi-umbrella"></i> Осадки</h6>
+                                        <p class="card-text fs-5 fw-bold">@Model.WeatherForecast.Current.PrecipMm мм</p>
+                                        <small class="text-muted">За последний час</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-6">
+                                <p class="mb-1"><i class="bi bi-eye"></i> <strong>Видимость:</strong> @Model.WeatherForecast.Current.VisKm км</p>
+                                <p class="mb-1"><i class="bi bi-brightness-high"></i> <strong>УФ-индекс:</strong>
+                                    <span class="badge @GetUvBadgeClass(Model.WeatherForecast.Current.Uv)">@Model.WeatherForecast.Current.Uv</span>
+                                </p>
+                            </div>
+                            <div class="col-6">
+                                <p class="mb-1"><i class="bi bi-cloud"></i> <strong>Облачность:</strong> @Model.WeatherForecast.Current.Cloud%</p>
+                                <p class="mb-0"><i class="bi bi-clock"></i> <strong>Обновлено:</strong> @Model.WeatherForecast.Current.LastUpdated</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Почасовой прогноз -->
+        <div class="card mb-4 weather-card border-info">
+            <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+                <h3 class="mb-0"><i class="bi bi-clock-history"></i> Почасовой прогноз</h3>
+                <span class="badge bg-light text-info">Следующие 24 часа</span>
+            </div>
+            <div class="card-body">
+                @{
+                    var today = DateTime.Today;
+                    var tomorrow = today.AddDays(1);
+                    var allHours = Model.WeatherForecast.ForecastDays
+                        .SelectMany(day => day.Hours.Select(hour => new { Day = day.Date, Hour = hour }))
+                        .Where(x => x.Day.Date == today.Date || x.Day.Date == tomorrow.Date)
+                        .ToList();
+                    
+                    var currentHour = DateTime.Now.Hour;
+                    var futureHours = allHours
+                        .Where(x => x.Day.Date == today.Date 
+                            ? GetHourFromTime(x.Hour.Time) >= currentHour
+                            : true)
+                        .Take(24) // Show up to 24 hours
+                        .ToList();
+                }
+                
+                @if (futureHours.Any())
+                {
+                    <div class="row row-cols-2 row-cols-sm-3 row-cols-md-4 row-cols-lg-6 g-3">
+                        @foreach (var hourData in futureHours)
+                        {
+                            <div class="col">
+                                <div class="text-center p-3 border rounded bg-light hourly-forecast-item h-100">
+                                    <p class="mb-1 fw-bold">
+                                        @if (hourData.Day.Date == today.Date)
+                                        {
+                                            <span class="badge bg-primary">Сегодня</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary">Завтра</span>
+                                        }
+                                        <br><small>@hourData.Hour.Time</small>
+                                    </p>
+                                    @if (hourData.Hour.Condition?.Icon != null)
+                                    {
+                                        <img src="@hourData.Hour.Condition.Icon" alt="@TranslationHelper.TranslateCondition(hourData.Hour.Condition.Text)" class="img-fluid weather-icon-sm my-2">
+                                    }
+                                    <p class="mb-0 fs-5 fw-bold">@hourData.Hour.TempC°C</p>
+                                    <small class="text-muted d-block">@TranslationHelper.TranslateCondition(hourData.Hour.Condition?.Text)</small>
+                                    <div class="mt-2">
+                                        <span class="badge bg-primary">💧 @hourData.Hour.ChanceOfRain%</span>
+                                        @if (hourData.Hour.WillItRain == 1)
+                                        {
+                                            <span class="badge bg-warning ms-1">Дождь</span>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <p class="text-center text-muted">Нет данных почасового прогноза.</p>
+                }
+            </div>
+        </div>
+        
+        <!-- Прогноз на 3 дня -->
+        <div class="card weather-card border-success">
+            <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                <h3 class="mb-0"><i class="bi bi-calendar3"></i> Прогноз на 3 дня</h3>
+                <span class="badge bg-light text-success">Расширенный прогноз</span>
+            </div>
+            <div class="card-body">
+                <div class="row row-cols-1 row-cols-md-3 g-4">
+                    @foreach (var day in Model.WeatherForecast.ForecastDays.Take(3))
+                    {
+                        <div class="col">
+                            <div class="card h-100 day-forecast-card">
+                                <div class="card-body text-center">
+                                    <h5 class="card-title">@day.Date.ToString("dddd")</h5>
+                                    <p class="card-subtitle mb-3 text-muted">@day.Date.ToString("MMM dd")</p>
+                                    
+                                    @if (day.DaySummary?.Condition?.Icon != null)
+                                    {
+                                        <img src="@day.DaySummary.Condition.Icon" alt="@TranslationHelper.TranslateCondition(day.DaySummary.Condition.Text)" class="img-fluid mb-3 weather-icon">
+                                    }
+                                    
+                                    <div class="d-flex justify-content-around mb-3">
+                                        <div>
+                                            <p class="mb-0 fs-4 fw-bold text-danger">@day.DaySummary?.MaxTempC°C</p>
+                                            <small class="text-muted">Макс.</small>
+                                        </div>
+                                        <div>
+                                            <p class="mb-0 fs-4 fw-bold text-primary">@day.DaySummary?.MinTempC°C</p>
+                                            <small class="text-muted">Мин.</small>
+                                        </div>
+                                    </div>
+                                    
+                                    <p class="card-text mb-3">@TranslationHelper.TranslateCondition(day.DaySummary?.Condition?.Text)</p>
+                                    
+                                    <div class="row g-2">
+                                        <div class="col-6">
+                                            <div class="card bg-light">
+                                                <div class="card-body py-2">
+                                                    <small><i class="bi bi-wind"></i> Ветер</small>
+                                                    <p class="mb-0 fw-bold">@day.DaySummary?.MaxWindKph км/ч</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-6">
+                                            <div class="card bg-light">
+                                                <div class="card-body py-2">
+                                                    <small><i class="bi bi-droplet"></i> Дождь</small>
+                                                    <p class="mb-0 fw-bold">@day.DaySummary?.DailyChanceOfRain%</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-6">
+                                            <div class="card bg-light">
+                                                <div class="card-body py-2">
+                                                    <small><i class="bi bi-brightness-high"></i> УФ</small>
+                                                    <p class="mb-0 fw-bold">@day.DaySummary?.Uv</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-6">
+                                            <div class="card bg-light">
+                                                <div class="card-body py-2">
+                                                    <small><i class="bi bi-moisture"></i> Влажность</small>
+                                                    <p class="mb-0 fw-bold">@day.DaySummary?.AvgHumidity%</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+        
+        <!-- Кнопка обновления -->
+        <div class="text-center mt-5">
+            <form method="post" asp-page-handler="Refresh" id="refreshForm">
+                <button type="submit" class="btn btn-primary btn-lg px-5 py-3" id="refreshButton">
+                    <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true" id="refreshSpinner"></span>
+                    <i class="bi bi-arrow-clockwise" id="refreshIcon"></i> <span id="refreshText">Обновить данные о погоде</span>
+                </button>
+            </form>
+        </div>
+        
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                const form = document.getElementById('refreshForm');
+                const button = document.getElementById('refreshButton');
+                const spinner = document.getElementById('refreshSpinner');
+                const icon = document.getElementById('refreshIcon');
+                const text = document.getElementById('refreshText');
+                
+                form.addEventListener('submit', function() {
+                    // Show spinner
+                    spinner.classList.remove('d-none');
+                    icon.classList.add('d-none');
+                    text.textContent = ' Обновление...';
+                    button.disabled = true;
+                });
+            });
+        </script>
+    }
+    else
+    {
+        <div class="text-center my-5">
+            <div class="card border-warning">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="bi bi-exclamation-triangle"></i> Нет данных о погоде</h5>
+                    <p class="card-text">Не удалось загрузить прогноз погоды. Проверьте подключение и попробуйте снова.</p>
+                    <a href="?retry=true" class="btn btn-warning">Загрузить данные о погоде</a>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<style>
+    .bg-orange {
+        background-color: #fd7e14 !important;
+    }
+    .bg-purple {
+        background-color: #6f42c1 !important;
+    }
+</style>

@@ -1,0 +1,32 @@
+﻿@page
+@using Microsoft.AspNetCore.Authentication
+@model PrivacyModel
+@{
+    ViewData["Title"] = "Данные аутентфикации пользователя";
+}
+<h2>Данные аутентфикации пользователя</h2>
+
+@if (User.Identity is not { IsAuthenticated: true })
+{
+    <h5>Пользователь не авторизован</h5>  
+}
+else
+{
+    <h5>User.Claims</h5>
+    <dl>
+        @foreach (var claim in User.Claims)
+        {
+            <dt>@claim.Type</dt>
+            <dd>@claim.Value</dd>
+        }
+    </dl>
+
+    <h5>Authenticate.Properties</h5>
+    <dl>
+        @foreach (var prop in (await HttpContext.AuthenticateAsync()).Properties!.Items)
+        {
+            <dt>@prop.Key</dt>
+            <dd>@prop.Value</dd>
+        }
+    </dl>   
+}

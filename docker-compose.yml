@@ -1,0 +1,107 @@
+version: '3.9'
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: weather_forecast_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    networks:
+      - weather_network
+
+  identity:
+    image: wf-identity:latest
+    build:
+      context: ./identity/WeatherForecast.Identity
+      dockerfile: Dockerfile
+    container_name: weather_identity
+    ports:
+      - "8081:80"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:80
+      - ConnectionStrings__DefaultConnection=Data Source=/app/data/identity.db
+      - IdentityServer__IssuerUri=http://localhost:8081
+      - IdentityServer__PublicOrigin=http://localhost:8081
+    volumes:
+      - identity_data:/app/data
+      - ./identity/WeatherForecast.Identity/logs:/app/logs
+    networks:
+      - weather_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  backend:
+    image: wf-webapi:latest
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: weather_backend
+    ports:
+      - "8080:80"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:80
+      - ASPNETCORE_HTTPS_REDIRECT_ENABLED=false
+      - ASPNETCORE_HTTPS_PORT=
+      - WEATHERAPI_KEY=${WEATHERAPI_KEY:-fa8b3df74d4042b9aa7135114252304}
+      - ConnectionStrings__Redis=redis:6379
+    volumes:
+      - ./backend/logs:/app/logs
+    depends_on:
+      - redis
+    networks:
+      - weather_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  frontend:
+    image: wf-frontend:latest
+    build:
+      context: ./frontend/Wf.Frontend
+      dockerfile: Dockerfile
+    container_name: weather_frontend
+    ports:
+      - "80:8080"
+      - "443:8081"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+      - ASPNETCORE_HTTPS_REDIRECT_ENABLED=false
+      - BackendApi__BaseUrl=http://backend:80
+      - BackendApi__TimeoutSeconds=30
+      - Identity__Authority=http://host.docker.internal:8081
+      - Identity__MetadataAddress=http://host.docker.internal:8081/.well-known/openid-configuration
+      - Identity__ClientId=weather-forecast-web-app
+    depends_on:
+      backend:
+        condition: service_healthy
+      identity:
+        condition: service_healthy
+    networks:
+      - weather_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  redis_data:
+  identity_data:
+
+networks:
+  weather_network:
+    driver: bridge
