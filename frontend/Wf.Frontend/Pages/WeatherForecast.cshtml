@@ -24,6 +24,9 @@
         var hourStr = timePart.Split(':')[0];
         return int.Parse(hourStr);
     }
+    
+    System.Globalization.CultureInfo russianCulture =
+            new System.Globalization.CultureInfo("ru-RU");
 
 }
 
@@ -145,23 +148,24 @@
         <div class="card mb-4 weather-card border-info">
             <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
                 <h3 class="mb-0"><i class="bi bi-clock-history"></i> Почасовой прогноз</h3>
-                <span class="badge bg-light text-info">Следующие 24 часа</span>
+                <span class="badge bg-light text-info">Сегодня и завтра</span>
             </div>
             <div class="card-body">
                 @{
-                    var today = DateTime.Today;
-                    var tomorrow = today.AddDays(1);
+                    var moscowNow = DateTime.UtcNow.AddHours(3);
+                    var moscowToday = moscowNow.Date;
+                    var moscowTomorrow = moscowToday.AddDays(1);
+
                     var allHours = Model.WeatherForecast.ForecastDays
                         .SelectMany(day => day.Hours.Select(hour => new { Day = day.Date, Hour = hour }))
-                        .Where(x => x.Day.Date == today.Date || x.Day.Date == tomorrow.Date)
+                        .Where(x => x.Day.Date == moscowToday || x.Day.Date == moscowTomorrow)
                         .ToList();
                     
-                    var currentHour = DateTime.Now.Hour;
+                    var currentMoscowHour = moscowNow.Hour;
                     var futureHours = allHours
-                        .Where(x => x.Day.Date == today.Date 
-                            ? GetHourFromTime(x.Hour.Time) >= currentHour
+                        .Where(x => x.Day.Date == moscowToday
+                            ? GetHourFromTime(x.Hour.Time) >= currentMoscowHour
                             : true)
-                        .Take(24) // Show up to 24 hours
                         .ToList();
                 }
                 
@@ -173,7 +177,7 @@
                             <div class="col">
                                 <div class="text-center p-3 border rounded bg-light hourly-forecast-item h-100">
                                     <p class="mb-1 fw-bold">
-                                        @if (hourData.Day.Date == today.Date)
+                                        @if (hourData.Day.Date == moscowToday.Date)
                                         {
                                             <span class="badge bg-primary">Сегодня</span>
                                         }
@@ -221,8 +225,8 @@
                         <div class="col">
                             <div class="card h-100 day-forecast-card">
                                 <div class="card-body text-center">
-                                    <h5 class="card-title">@day.Date.ToString("dddd")</h5>
-                                    <p class="card-subtitle mb-3 text-muted">@day.Date.ToString("MMM dd")</p>
+                                    <h5 class="card-title">@day.Date.ToString("dddd", russianCulture)</h5>
+                                    <p class="card-subtitle mb-3 text-muted">@day.Date.ToString("MMM dd", russianCulture)</p>
                                     
                                     @if (day.DaySummary?.Condition?.Icon != null)
                                     {
